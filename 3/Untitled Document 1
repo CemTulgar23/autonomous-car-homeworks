@@ -1,0 +1,72 @@
+-> Git is distributed: every developer has the full history of their code repository locally. This makes the initial clone of the repository slower, but subsequent operations such as commit, blame, diff, merge, and log dramatically faster.
+
+-> Git also has excellent support for branching, merging, and rewriting repository history.
+
+->  Pull requests are one such popular tool that allows teams to collaborate on Git branches and efficiently review each other's code.
+
+-> git clone, git config, git add, git status, git commit, git push, git pull, git branch, git checkout, and git merge
+
+-> You can view public repositories without a Bitbucket account if you have the URL for that repository.
+
+-> A code project can consist of multiple repositories across multiple accounts but can also be a single repository from a single account.
+
+-> Each repository has a 2 GB size limit.
+
+-> Git refers to copying a repository as "cloning" it. When you clone a repository, you create a connection between the Bitbucket server (which Git knows as origin) and your local system.
+
+-> Get the status of your local repository. The git status command tells you about how your project is progressing in comparison to your Bitbucket repository. The file is untracked, meaning that Git sees a file not part of a previous commit.
+
+-> Git consists of three area, which are Working Directory, Staging Area and Repository.
+
+-> The git add command moves changes from the working directory to the Git staging area. The staging area is where you prepare a snapshot of a set of changes before committing them to the official history.
+
+-> The git status command displays the state of the working directory and the staged snapshot.
+
+-> The git commit takes the staged snapshot and commits it to the project history at the locale repository in the computer.  
+
+-> The git push command is used to send locale repository to remote repository such as GitHub or Bitbucket.
+
+-> The git pull command merges the file from your remote repository (Bitbucket) into your local repository with a single command.
+
+-> A branch represents an independent line of development for your repository. 
+
+-> branches are just pointers to commits. When you create a branch, all Git needs to do is create a new pointer—it doesn’t create a whole new set of files or folders.
+
+-> Using of branch is such an effective way that we can manage our whole project easily. Branchs are seperate points that we can commit them by one by. So it is more simple to make some changes onto a particular part of the project. 
+
+-> git branch command creates a branch but does not switch you to that branch.
+
+-> To switch the new branch git checkout commant must be used. For both creating a new branch and swithing this branch, git checkout -b command must beused.
+
+-> To merge the branchs we need to use git merge command.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
