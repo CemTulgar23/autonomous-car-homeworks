@@ -1,0 +1,19 @@
+/**:
+  image_publisher:
+    ros__parameters:
+      video_file: "/home/tulgar/homeworks/5/YARGI.mp4"  # MP4 dosyasının yolu
+      frame_rate: 30  # FPS değeri
+      
+      filter_params:
+        gaussian_blur:
+          kernel_size: 5     # Gaussian blur için çekirdek boyutu (tek bir sayı, genellikle tek sayı olmalıdır)
+          sigma: 1.0         # Gaussian blur için sigma değeri (bulanıklık seviyesi)
+
+      grayscale_conversion:
+        enabled: true      # Grayscale dönüşümünü etkinleştir/geliştir (true/false)
+
+      canny_edge_detection:
+        threshold1: 100    # Canny kenar algılama için alt eşik değeri
+        threshold2: 200    # Canny kenar algılama için üst eşik değeri
+        aperture_size: 3   # Kenar algılama için açıklık boyutu (3, 5, 7 gibi tek sayılar)
+        L2_gradient: false # L2 normunu kullanıp kullanmamak (true/false)

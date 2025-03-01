@@ -1,0 +1,7 @@
+{
+    "cmake.sourceDirectory": "/home/tulgar/catkin_ws/src/my_cpp_pkg",
+    "files.associations": {
+        "functional": "cpp",
+        "chrono": "cpp"
+    }
+}
