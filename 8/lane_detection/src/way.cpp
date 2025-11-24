@@ -39,8 +39,6 @@ public:
     }
 
 private:
-    //    const sensor_msgs::msg::Image::SharedPtr msg
-    //    cv::Mat image
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
         // ROS 2 Image mesajını OpenCV formatına çevir
@@ -50,9 +48,6 @@ private:
 
         width = image.cols;
         height = image.rows;
-
-        // std::cout << "width: " << width << std::endl;
-        // std::cout << "height: " << height << std::endl;
 
         padding = static_cast<int>(0.25 * width);
         desired_roi_points = {
@@ -69,39 +64,37 @@ private:
             cv::Point2f(width / 2 + 175, height - 100)  // Top-right corner
         };
 
-     
         orig_image_size = image.size();
 
-        lane_line_markings = get_line_markings(image);
+        cv::imshow("Image", image);
 
-        perspective_transform(image, false);
+        lane_line_markings = get_line_markings(image);
+        cv::imshow("Lane Line Markings", lane_line_markings);
+
+        perspective_transform(lane_line_markings, true);
+        cv::imshow("Warped Frame", warped_frame);
 
         calculateHistogram(warped_frame, true);
 
         find_histogram_lane();
 
-        std::pair<int, int> peaks = histogram_peak();
-        // std::cout << "Left peak: " << peaks.first << ", Right peak: " << peaks.second << std::endl;
-
         margin = static_cast<int>((1.0 / 12.0) * width); // Window width is +/- margin
         minpix = static_cast<int>((1.0 / 24.0) * width); // Min no. of pixels to recenter window
 
+        std::pair<int, int> peaks = histogram_peak();
+        
         get_lane_line_indices_sliding_windows(true);
 
         calculate_car_position(true);
 
-        plot_roi(image, roi_points, false);
+        plot_roi(image, roi_points, true);
 
-        // cv::imshow("Image", image);
-        // cv::imshow("Lane Line Markings", lane_line_markings);
-        // std::cout << "BBBBBBBBBBBBBBBBBBBBBBBBB" << std::endl;
         cv::waitKey(1);
     }
 
     double calculate_car_position(bool print_to_terminal = false)
     {
         // Arabanın görüntüdeki konumu (kamera merkezde varsayılıyor)
-        // double car_location = orig_frame.cols / 2.0;
         double car_location = roi_points[1].x + ((roi_points[2].x - roi_points[1].x) / 2);
 
         // Sol ve sağ şerit çizgilerinin tabandaki x koordinatları
@@ -142,6 +135,7 @@ private:
     {
         auto msg = carla_msgs::msg::CarlaEgoVehicleControl();
 
+        // Eğer hedef bölgeye gelindiyse dur.
         if (isInsidePolygon(polygon, ego_vehicle_current_point))
         {
             msg.steer = 0.0;
@@ -149,10 +143,10 @@ private:
             msg.brake = 1.0;
         }
 
-        if (center_offset > 30 || center_offset < -30)
+        if (center_offset > 30 || center_offset < -30) // viraj ya da keskin dönüş
         {
 
-            if (ego_vehicle_velocity > 5)
+            if (ego_vehicle_velocity > 5) // hızı 5'ten büyük olmasın
             {
                 msg.throttle = 0.0;
                 msg.brake = 0.5;
@@ -163,11 +157,11 @@ private:
                 msg.brake = 0.0;
             }
 
-            if (center_offset < 100 && center_offset > -100)
+            if (center_offset < 100 && center_offset > -100) // virajlar
             {
                 msg.steer = -center_offset / 100 * 0.4;
             }
-            else
+            else // keskin dönüşler
             {
                 if (center_offset < 0)
                 {
@@ -179,14 +173,14 @@ private:
                 }
             }
         }
-        else
+        else // düz yolda şerit ortalama
         {
             if (center_offset > 10.0) // merkezin sağında
             {
                 std::cout << "Sağda" << std::endl;
                 msg.steer = -0.1;
 
-                if (ego_vehicle_velocity < 10)
+                if (ego_vehicle_velocity < 10) // hızı 10'dan büyük olmasın
                 {
                     msg.throttle = 0.1;
                 }
@@ -200,7 +194,7 @@ private:
                 std::cout << "Solda" << std::endl;
                 msg.steer = 0.1;
 
-                if (ego_vehicle_velocity < 10)
+                if (ego_vehicle_velocity < 10) // hızı 10'dan büyük olmasın
                 {
                     msg.throttle = 0.1;
                 }
@@ -211,8 +205,15 @@ private:
             }
             else
             {
-                msg.steer = 0.0;
-                msg.throttle = 0.2;
+                if (ego_vehicle_velocity < 15) // hızı 15'dan büyük olmasın
+                {
+                    msg.steer = 0.0;
+                    msg.throttle = 0.2;
+                }
+                else
+                {
+                    msg.throttle = 0.0;
+                }
             }
         }
 
@@ -317,7 +318,6 @@ private:
 
     cv::Mat perspective_transform(const cv::Mat &input_frame, bool plot = false)
     {
-        // cv::Mat frame = input_frame.empty() ? lane_line_markings : input_frame;
         cv::Mat frame = lane_line_markings;
 
         // 1. Perspektif dönüşüm matrisini hesapla
@@ -329,10 +329,7 @@ private:
         // 3. Perspektif dönüşümü uygula
         cv::warpPerspective(frame, warped_frame, transformation_matrix, orig_image_size, cv::INTER_LINEAR);
 
-        // 4. Görüntüyü binary hale getir (eşikleme)
-        // cv::threshold(warped_frame, warped_frame, 127, 255, cv::THRESH_BINARY);
-
-        // 5. Görsel olarak çizmek istiyorsan
+        // 4. Görsel olarak çizmek istiyorsan
         if (plot)
         {
             cv::Mat warped_copy = warped_frame.clone();
@@ -344,8 +341,7 @@ private:
             cv::polylines(warped_copy, poly_points, true, cv::Scalar(147, 20, 255), 3);
 
             // Görüntüyü göster
-            cv::imshow("Warped Image", warped_copy);
-            // cv::waitKey(0);
+            cv::imshow("Warped Coppy", warped_copy);
         }
         return warped_frame;
     }
@@ -357,26 +353,18 @@ private:
             frame = warped_frame.clone(); // Daha önceki frame kullanılır
         }
 
-        // cv::Point2f left_point = desired_roi_points[0];
-        // cv::Point2f right_point = desired_roi_points[3];
-
         cv::Point2f left_point = cv::Point2f(0, 0);
         cv::Point2f right_point = cv::Point2f(width, 0);
-
-        // std::cout << "Left x: " << left_point.x << ", Right x: " << right_point.x << std::endl;
-
-        // int histogram_width = right_point.x - left_point.x;
 
         // Histogramı sıfırla
         histogram = std::vector<int>(width, 0);
 
-        // Alt yarıdan beyaz pikselleri say
+        // Sütunlardaki beyaz pikselleri say
         for (int y = 0; y < height; y++)
         {
             for (int x = left_point.x; x < right_point.x + 1; x++)
             {
                 unsigned char pixel = frame.at<unsigned char>(y, x);
-                // std::cout << "pixel (" << x << ", " << y << "): " << (int)pixel << std::endl;
                 if (pixel > 100)
                 {
                     histogram[x]++;
@@ -402,7 +390,6 @@ private:
             }
 
             cv::imshow("Histogram Peaks", hist_image);
-            // cv::waitKey(0);
         }
 
         return histogram;
@@ -472,9 +459,6 @@ private:
             last_peaks.second = rightx_base;
         }
 
-        // std::cout << "rightx_base: " << rightx_base << std::endl;
-        // std::cout << "leftx_base: " << leftx_base << std::endl;
-
         // Sol ve sağ zirve x koordinatlarını döndür
         return std::make_pair(leftx_base, rightx_base);
     }
@@ -505,10 +489,7 @@ private:
 
         int window_height = warped_frame.rows / no_of_windows; // divided screen heights
 
-        // std::vector<int> point_result_list;
-        // std::vector<cv::Point> point_list;
-        // int point_resutl_list_one_count = 0;
-
+        // Warped_frame'de buluanan beyaz noktaları erafındaki pikselleri de beyaz yaparak daha da belirginleştiriyoruz.
         for (int y = 0; y < warped_frame.rows; ++y)
         {
             for (int x = 0; x < warped_frame.cols; ++x)
@@ -531,6 +512,7 @@ private:
             }
         }
 
+        // Kayan pencere oluşturduktan sonra bulduğumuz orta noktaların koordinatlarını atacağımız listeler
         std::vector<double> left_line_x_list;
         std::vector<double> left_line_y_list;
         std::vector<double> right_line_x_list;
@@ -545,13 +527,13 @@ private:
         }
         else if (steering_direction == "left")
         {
-            recent_left_first_white_point = cv::Point(0, 0);
+            recent_left_first_white_point = cv::Point(0, height);
             recent_right_first_white_point = cv::Point(width * 3 / 4 + margin, height);
         }
         else if (steering_direction == "right")
         {
-            recent_left_first_white_point = cv::Point(width / 4 - margin, 0);
-            recent_right_first_white_point = cv::Point(width - margin * 2, height);
+            recent_left_first_white_point = cv::Point(width / 4 - margin, height);
+            recent_right_first_white_point = cv::Point(width, height);
         }
 
         for (int y = height - 1; y >= 0; y -= window_height)
@@ -650,6 +632,7 @@ private:
                 }
             }
 
+            // Bulduğumuz noktalara göre kayan pencerelerin sınırlarını belirliyoruz.
             int win_low_y = y;
             int win_high_y = y - window_height;
             int win_left_low_x = left_first_white_point.x + margin * 2;
@@ -657,36 +640,42 @@ private:
             int win_right_low_x = right_first_white_point.x;
             int win_right_high_x = right_first_white_point.x - margin * 2;
 
+            // Kayan pencerelerin orta noktalarının x ve y değerlerini buluyoruz.
             int left_line_x = win_left_low_x + (win_left_high_x - win_left_low_x) / 2;
             int left_line_y = win_low_y + (win_high_y - win_low_y) / 2;
             int right_line_x = win_right_low_x + (win_right_high_x - win_right_low_x) / 2;
             int right_line_y = win_low_y + (win_high_y - win_low_y) / 2;
 
+            // ulduğumuz bu x ve y değerlerini dizilerin içine atıyoruz.
             left_line_x_list.push_back(left_line_x);
             left_line_y_list.push_back(left_line_y);
             right_line_x_list.push_back(right_line_x);
             right_line_y_list.push_back(right_line_y);
 
+            // Sol kayan pencereyi çiziyoruz
             cv::rectangle(frame_sliding_window,
                           cv::Point(win_left_low_x, win_low_y),
                           cv::Point(win_left_high_x, win_high_y),
                           cv::Scalar(80, 80, 80), 2);
 
+            // Sağ kayan pencereyi çiziyoruz
             cv::rectangle(frame_sliding_window,
                           cv::Point(win_right_low_x, win_low_y),
                           cv::Point(win_right_high_x, win_high_y),
                           cv::Scalar(160, 160, 160), 2);
         }
-        cv::imshow("frame_sliding_window", frame_sliding_window);
+        cv::imshow("Frame Sliding Window", frame_sliding_window);
 
         try
         {
+            // Bulduğumuz kayan pencerelerin orta noktalarını fit_poly() fonskiyonuna atarak 2. dereceden denklem oluşturuyoruz
+            // Bu denklem şeridi temsil ediyor.
             left_fit = fit_poly(left_line_y_list, left_line_x_list);
             right_fit = fit_poly(right_line_y_list, right_line_x_list);
         }
         catch (const std::exception &e)
         {
-            std::cout << "ERROR ERROR ERROR ERROR" << std::endl;
+            std::cout << "ERROR, While the system was trying to create a curve from center of the sliding windows." << std::endl;
             std::cerr << e.what() << '\n';
         }
 
@@ -733,7 +722,7 @@ private:
         }
 
         // Step 6: Display the final image with the lane lines
-        cv::imshow("Detected Lane Lines with Sliding Windows", color_output); // Display the image with lane lines
+        cv::imshow("Detected Lane Lines With Sliding Windows", color_output); // Display the image with lane lines
     }
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
@@ -762,24 +751,22 @@ private:
     int margin;             // Width of each window
     int minpix;             // Min number of pixels to recenter window
 
-    std::pair<int, int> last_peaks = {0, 0};
+    std::pair<int, int> last_peaks = {0, 0}; // Histogramın tepe noktaları
 
-    cv::Vec3d left_fit;
-    cv::Vec3d right_fit;
+    cv::Vec3d left_fit;  // Sol şerit
+    cv::Vec3d right_fit; // Sağ şerit
 
     double center_offset;
     float ego_vehicle_velocity;
-    // std::array<float, 3> ego_vehicle_position_coordinates = {0, 0, 0}; // (x, y, z)
     geometry_msgs::msg::Point ego_vehicle_current_point;
 
     std::string steering_direction;
 
-    std::vector<std::pair<float, float>> polygon = {
-        {-62.3f, 44.0f},
-        {-63.0f, 41.1f},
-        {-68.7f, 35.0f},
-        {-70.9f, 34.5f}
-    };
+    std::vector<std::pair<float, float>> polygon = {// Hedef Bölge
+                                                    {-62.3f, 44.0f},
+                                                    {-63.0f, 41.1f},
+                                                    {-68.7f, 35.0f},
+                                                    {-70.9f, 34.5f}};
 };
 
 int main(int argc, char **argv)
@@ -790,22 +777,3 @@ int main(int argc, char **argv)
     rclcpp::shutdown();
     return 0;
 }
-
-/*
-int main(int argc, char **argv)
-{
-    rclcpp::init(argc, argv);
-
-    auto node = std::make_shared<LaneNode>();
-
-    std::string imagePath = "/home/tulgar/catkin_ws/src/lane_detection/include/road4.png";
-
-    cv::Mat image = cv::imread(imagePath);
-
-    node->image_callback(image);
-
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
-}
-*/

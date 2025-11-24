@@ -16,13 +16,6 @@ find_package(nav_msgs REQUIRED)
 add_executable(way src/way.cpp src/edge_detection.cpp)
 
 ament_target_dependencies(
-  rclcpp 
-  sensor_msgs 
-  cv_bridge 
-  OpenCV
-  carla_msgs)
-
-  ament_target_dependencies(
   way
   rclcpp 
   sensor_msgs 
