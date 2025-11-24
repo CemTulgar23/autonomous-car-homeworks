@@ -11,12 +11,11 @@ find_package(cv_bridge REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(carla_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
-add_executable(lane src/lane.cpp src/edge_detection.cpp)
 add_executable(way src/way.cpp src/edge_detection.cpp)
 
 ament_target_dependencies(
-  lane
   rclcpp 
   sensor_msgs 
   cv_bridge 
@@ -29,12 +28,12 @@ ament_target_dependencies(
   sensor_msgs 
   cv_bridge 
   OpenCV
-  carla_msgs)
+  carla_msgs
+  nav_msgs)
 
 
 
 install(TARGETS 
-  lane 
   way
   DESTINATION lib/${PROJECT_NAME})
 
